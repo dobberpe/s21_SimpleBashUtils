@@ -91,12 +91,26 @@ void print_file(cat_args* cat) {
     }
 }
 
-void print_char(char c, cat_args* cat, int* line_counter, bool newline) {
+void print_char(unsigned char c, cat_args* cat, int* line_counter, bool newline) {
     if (newline && ((cat->num_nonblank && c != '\n') || cat->num)) {
         printf("%6d\t", ++(*line_counter));
     }
     if (c != '\n') {
         if (cat->tab && c == '\t') printf("^I");
+        if (cat->nonprint) {
+            if (c < 32) {
+                c += 64;
+                printf("^%c", c);
+            } else if (c == 127) printf("^?");
+            else if (c > 127 && c < 160) {
+                c -= 64;
+                printf("M-^%c", c);
+            } else if (c >= 160 && c < 255) {
+                c -= 128;
+                printf("M-%c", c);
+            } else if (c == 255) printf("M-^?");
+            else printf("%c", c);
+        }
         else printf("%c", c);
     } else {
         if (cat->endl) printf("$");

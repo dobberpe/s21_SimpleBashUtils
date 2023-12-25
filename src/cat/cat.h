@@ -21,4 +21,4 @@ cat_args* get_options(int argc, char** argv);
 cat_args* init_cat();
 void get_files(int argc, char** argv, cat_args* cat);
 void print_file(cat_args* cat);
-void print_char(char c, cat_args* cat, int* line_counter, bool newline);
+void print_char(unsigned char c, cat_args* cat, int* line_counter, bool newline);
