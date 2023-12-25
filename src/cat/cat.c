@@ -70,72 +70,35 @@ void get_files(int argc, char** argv, cat_args* cat) {
 }
 
 void print_file(cat_args* cat) {
-    char* line = NULL;
-    int len = 0;
+    bool newline = true;
     bool right_after_blank = false;
     int line_counter = 0;
 
     for (int i = 0; i < cat->f_size; ++i) {
         FILE* file = fopen(cat->files[i], "r");
         if (file) {
+            char prev = 'c';
             char c;
-            do {
-                c = fgetc(file);
-                if (c != '\n' && c != EOF) {
-                    ++len;
-                    line = line ? (char*)realloc(line, len * sizeof(char)) :(char*)malloc(len * sizeof(char));
-                    line[len - 1] = c;
-                } else {
-                    line = line ? (char*)realloc(line, (len + 1) * sizeof(char)) : (char*)malloc(sizeof(char));
-                    line[len] = '\0';
-                    if (len || !cat->squeeze || !right_after_blank) {
-                        apply_options(&line, cat);
-                        print_line(c, &line, cat, &line_counter);
-                    }
-                    right_after_blank = len ? false : true;
-                    len = 0;
+            while ((c = fgetc(file)) != EOF) {
+                if (c != '\n' || !cat->squeeze || !right_after_blank) {
+                    print_char(c, cat, &line_counter, newline);
                 }
-            } while (c != EOF);
+                newline = c == '\n' ? true : false;
+                right_after_blank = (c == '\n' && prev == '\n') ? true : false;
+                prev = c;
+            };
         } else printf("%s: No such file or directory\n", cat->files[i]);
     }
 }
 
-void apply_options(char** line, cat_args* cat) {
-    if (cat->tab) replace_tab(line);
-    // if (cat->nonprint) replace_nonprint(line);
-}
-
-void replace_tab(char** line) {
-    int j = 0;
-    char* replaced_line = NULL;
-    
-    for (int i = 0; i < (int)strlen(*line); ++i) {
-        if ((*line)[i] != '\t') {
-            replaced_line = replaced_line ? (char*)realloc(replaced_line, (j + 1) * sizeof(char)) : (char*)malloc((j + 1) * sizeof(char));
-            replaced_line[j++] = (*line)[i];
-        } else {
-            replaced_line = replaced_line ? (char*)realloc(replaced_line, (j + 2) * sizeof(char)) : (char*)malloc((j + 2) * sizeof(char));
-            replaced_line[j++] = '^';
-            replaced_line[j++] = 'I';
-        }
+void print_char(char c, cat_args* cat, int* line_counter, bool newline) {
+    if (newline && ((cat->num_nonblank && c != '\n') || cat->num)) {
+        printf("%6d\t", ++(*line_counter));
     }
-
-    replaced_line = (char*)realloc(replaced_line, (j + 1) * sizeof(char));
-    replaced_line[j] = '\0';
-    free(*line);
-    *line = replaced_line;
-}
-
-void print_line(char c, char** line, cat_args* cat, int* line_counter) {
-    if ((cat->num_nonblank && strlen(*line)) || cat->num) {
-        printf("%6d  ", ++(*line_counter));
-    }
-    if (strlen(*line)) {        
-        printf("%s", *line);
-        free(*line);
-        *line = NULL;
-    }
-    if (c == '\n') {
+    if (c != '\n') {
+        if (cat->tab && c == '\t') printf("^I");
+        else printf("%c", c);
+    } else {
         if (cat->endl) printf("$");
         printf("\n");
     }
