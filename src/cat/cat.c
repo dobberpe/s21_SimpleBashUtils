@@ -108,9 +108,12 @@ void print_line(char c, char** line, cat_args* cat, int* line_counter) {
         printf("%6d  ", ++(*line_counter));
     }
     if (strlen(*line)) {        
-        printf("%s  ", *line);
+        printf("%s", *line);
         free(*line);
         *line = NULL;
     }
-    if (c == '\n') printf("\n");
+    if (c == '\n') {
+        if (cat->endl) printf("$");
+        printf("\n");
+    }
 }
