@@ -89,7 +89,7 @@ void print_file(cat_args* cat) {
                     line = line ? (char*)realloc(line, (len + 1) * sizeof(char)) : (char*)malloc(sizeof(char));
                     line[len] = '\0';
                     // if (len || !cat->squeeze || !right_after_blank) apply_options(&line, cat, &line_counter);
-                    if (!cat->squeeze || !right_after_blank) print_line(c, &line, cat, &line_counter);
+                    if (len || !cat->squeeze || !right_after_blank) print_line(c, &line, cat, &line_counter);
                     right_after_blank = len ? false : true;
                     len = 0;
                 }
