@@ -71,6 +71,7 @@ void print_file(cat_args* cat) {
     char* line = NULL;
     int len = 0;
     bool right_after_blank = false;
+    // int line_counter = 0;
 
     for (int i = 0; i < cat->f_size; ++i) {
         FILE* file = fopen(cat->files[i], "r");
@@ -83,7 +84,10 @@ void print_file(cat_args* cat) {
                     line = line ? (char*)realloc(line, len * sizeof(char)) :(char*)malloc(len * sizeof(char));
                     line[len - 1] = c;
                 } else {
-                    apply_options(c, &line, len, cat, &right_after_blank);
+                    line = line ? (char*)realloc(line, (len + 1) * sizeof(char)) : (char*)malloc(sizeof(char));
+                    line[len] = '\0';
+                    // apply_options(line, cat,);
+                    print_line(c, &line, cat, &right_after_blank);
                     len = 0;
                 }
             } while (c != EOF);
@@ -91,10 +95,8 @@ void print_file(cat_args* cat) {
     }
 }
 
-void apply_options(char c, char** line, int len, cat_args* cat, bool* right_after_blank) {
-    if (*line) {
-        *line = (char*)realloc(*line, (len + 1) * sizeof(char));
-        (*line)[len] = '\0';
+void print_line(char c, char** line, cat_args* cat, bool* right_after_blank) {
+    if (strlen(*line)) {
         printf("%s", *line);
         if (c == '\n') printf("\n");
         free(*line);
