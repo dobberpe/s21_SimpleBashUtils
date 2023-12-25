@@ -33,6 +33,8 @@ cat_args* get_options(int argc, char** argv) {
         } else fail = true;
     }
 
+    if (cat->num_nonblank && cat->num) cat->num = false;
+
     if (fail) {
         free(cat);
         cat = NULL;
@@ -71,7 +73,7 @@ void print_file(cat_args* cat) {
     char* line = NULL;
     int len = 0;
     bool right_after_blank = false;
-    // int line_counter = 0;
+    int line_counter = 0;
 
     for (int i = 0; i < cat->f_size; ++i) {
         FILE* file = fopen(cat->files[i], "r");
@@ -86,8 +88,8 @@ void print_file(cat_args* cat) {
                 } else {
                     line = line ? (char*)realloc(line, (len + 1) * sizeof(char)) : (char*)malloc(sizeof(char));
                     line[len] = '\0';
-                    // apply_options(line, cat,);
-                    print_line(c, &line, cat, &right_after_blank);
+                    // if (len || !cat->squeeze || !right_after_blank) apply_options(&line, cat, &line_counter);
+                    print_line(c, &line, cat, &right_after_blank, &line_counter);
                     len = 0;
                 }
             } while (c != EOF);
@@ -95,14 +97,26 @@ void print_file(cat_args* cat) {
     }
 }
 
-void print_line(char c, char** line, cat_args* cat, bool* right_after_blank) {
+// void apply_options(char** line, cat_args* cat, int* line_counter) {
+//     if (cat->endl)
+//     if (cat->tab)
+//     if (cat->nonprint)
+// }
+
+void print_line(char c, char** line, cat_args* cat, bool* right_after_blank, int* line_counter) {
     if (strlen(*line)) {
-        printf("%s", *line);
+        if (cat->num_nonblank || cat->num) {
+            printf("%6d  ", ++(*line_counter));
+        }
+        printf("%s  ", *line);
         if (c == '\n') printf("\n");
         free(*line);
         *line = NULL;
         *right_after_blank = false;
     } else if (!cat->squeeze || !*right_after_blank) {
+        if (cat->num) {
+            printf("%6d  ", ++(*line_counter));
+        }
         printf("\n");
         *right_after_blank = true;
     }
