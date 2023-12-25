@@ -1,57 +1,97 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include "cat.h"
 
 int main(int argc, char* argv[]) {
-    short int flags = 0;
-    int f_size = argc - 1;
-    char** files = read_commandline(argc, argv, &f_size, &flags);
+    cat_args* cat = get_options(argc, argv);
 
-    if (files) {
-        int j = 0;
-        for (int i = 1; i < argc; ++i) {
-            if (argv[i][0] != '-') files[j++] = argv[i];
-        }
+    if (cat) {
+        get_files(argc, argv, cat);
+        print_file(cat);
     }
 
     return 0;
 }
 
-char** read_commandline(int argc, char** argv, int* f_count, short int* flags) {
-    int i = 0;
-    int fail = 0;
-    char** files = NULL;
-
-    while (++i < argc && !fail) {
-        if (argv[i][0] == '-') {
-            --*f_count;
-            if (check_flag(argv[i], flags))
-                fail = 1;
-        }
-    }
+cat_args* get_options(int argc, char** argv) {
+    int option;
+    bool fail = false;
+    cat_args* cat = init_cat();
+    struct option long_opts[] = {  {"number-nonblank", 0, NULL, 'b'},
+                                    {"number", 0, NULL, 'n'},
+                                    {"squeeze-blank", 0, NULL, 's'},
+                                    {NULL, 0, NULL, 0}};
     
-    if (!fail) files = (char**)malloc(*f_count * sizeof(char*));
-    return files;
+    while ((option = getopt_long(argc, argv, "beEnstT", long_opts, NULL)) != -1) {
+        if (option == 'b') cat->num_nonblank = true;
+        else if (option == 'e' || option == 'E') {
+            cat->endl = true;
+            if (option == 'e') cat->nonprint = true;
+        } else if (option == 'n') cat->num_nonblank = true;
+        else if (option == 's') cat->num_nonblank = true;
+        else if (option == 't' || option == 'T') {
+            cat->num_nonblank = true;
+            if (option == 't') cat->nonprint = true;
+        } else fail = true;
+    }
+
+    if (fail) {
+        free(cat);
+        cat = NULL;
+    }
+    return cat;
 }
 
-int check_flag(char* arg, short int* flags) {
-    int fail = 0;
+cat_args* init_cat() {
+    cat_args* cat = (cat_args*)malloc(sizeof(cat_args));
+    
+    cat->files = NULL;
+    cat->f_size = 0;
+    cat->squeeze = false;
+    cat->nonprint = false;
+    cat->tab = false;
+    cat->endl = false;
+    cat->num_nonblank = false;
+    cat->num = false;
+    
+    return cat;
+}
 
-    if (!strcmp(arg, "-b") || !strcmp(arg, "--number-nonblank")) {
-        *flags |= 1;
-    } else if (!strcmp(arg, "-e")) {
-        *flags |= 2;
-    } else if (!strcmp(arg, "-E")) {
-        *flags |= 4;
-    } else if (!strcmp(arg, "-n") || !strcmp(arg, "--number")) {
-        *flags |= 8;
-    } else if (!strcmp(arg, "-s") || !strcmp(arg, "--squeeze-blank")) {
-        *flags |= 16;
-    } else if (!strcmp(arg, "-t")) {
-        *flags |= 32;
-    } else if (!strcmp(arg, "-T")) {
-        *flags |= 64;
-    } else fail = 1;
+void get_files(int argc, char** argv, cat_args* cat) {
+    int i = 0;
 
-    return fail;
+    while (++i < argc) {
+        if (argv[i][0] != '-') {
+            ++cat->f_size;
+            cat->files = cat->files ? (char**)realloc(cat->files, cat->f_size * sizeof(char*)) : (char**)malloc(cat->f_size * sizeof(char*));
+            cat->files[cat->f_size - 1] = argv[i];
+        }
+    }
+}
+
+void print_file(cat_args* cat) {
+    char* line = NULL;
+    int len = 0;
+    for (int i = 0; i < cat->f_size; ++i) {
+        FILE* file = fopen(cat->files[i], "r");
+        if (file) {
+            char c;
+            do {
+                c = fgetc(file);
+                if (c != '\n' && c != EOF) {
+                    ++len;
+                    line = line ? (char*)realloc(line, len * sizeof(char)) :(char*)malloc(len * sizeof(char));
+                    line[len - 1] = c;
+                } else {
+                    if (line) {
+                        line = (char*)realloc(line, (len + 1) * sizeof(char));
+                        line[len] = '\0';
+                        printf("%s", line);
+                        free(line);
+                        line = NULL;
+                    }
+                    if (c == '\n') printf("\n");
+                    len = 0;
+                }
+            } while (c != EOF);
+        } else printf("%s: No such file or directory\n", cat->files[i]);
+    }
 }
