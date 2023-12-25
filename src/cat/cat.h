@@ -21,4 +21,6 @@ cat_args* get_options(int argc, char** argv);
 cat_args* init_cat();
 void get_files(int argc, char** argv, cat_args* cat);
 void print_file(cat_args* cat);
+void apply_options(char** line, cat_args* cat);
+void replace_tab(char** line);
 void print_line(char c, char** line, cat_args* cat, int* line_counter);

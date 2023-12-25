@@ -88,8 +88,10 @@ void print_file(cat_args* cat) {
                 } else {
                     line = line ? (char*)realloc(line, (len + 1) * sizeof(char)) : (char*)malloc(sizeof(char));
                     line[len] = '\0';
-                    // if (len || !cat->squeeze || !right_after_blank) apply_options(&line, cat, &line_counter);
-                    if (len || !cat->squeeze || !right_after_blank) print_line(c, &line, cat, &line_counter);
+                    if (len || !cat->squeeze || !right_after_blank) {
+                        apply_options(&line, cat);
+                        print_line(c, &line, cat, &line_counter);
+                    }
                     right_after_blank = len ? false : true;
                     len = 0;
                 }
@@ -98,10 +100,31 @@ void print_file(cat_args* cat) {
     }
 }
 
-// void apply_options(char** line, cat_args* cat, int* line_counter) {
-//     if (cat->tab)
-//     if (cat->nonprint)
-// }
+void apply_options(char** line, cat_args* cat) {
+    if (cat->tab) replace_tab(line);
+    // if (cat->nonprint) replace_nonprint(line);
+}
+
+void replace_tab(char** line) {
+    int j = 0;
+    char* replaced_line = NULL;
+    
+    for (int i = 0; i < (int)strlen(*line); ++i) {
+        if ((*line)[i] != '\t') {
+            replaced_line = replaced_line ? (char*)realloc(replaced_line, (j + 1) * sizeof(char)) : (char*)malloc((j + 1) * sizeof(char));
+            replaced_line[j++] = (*line)[i];
+        } else {
+            replaced_line = replaced_line ? (char*)realloc(replaced_line, (j + 2) * sizeof(char)) : (char*)malloc((j + 2) * sizeof(char));
+            replaced_line[j++] = '^';
+            replaced_line[j++] = 'I';
+        }
+    }
+
+    replaced_line = (char*)realloc(replaced_line, (j + 1) * sizeof(char));
+    replaced_line[j] = '\0';
+    free(*line);
+    *line = replaced_line;
+}
 
 void print_line(char c, char** line, cat_args* cat, int* line_counter) {
     if ((cat->num_nonblank && strlen(*line)) || cat->num) {
