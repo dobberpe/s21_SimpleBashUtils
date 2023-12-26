@@ -79,7 +79,7 @@ void print_file(cat_args* cat) {
         if (file) {
             char prev = 'c';
             char c;
-            while ((c = fgetc(file)) != EOF) {
+            while (fread(&c, sizeof(char), 1, file)) {
                 if (c != '\n' || !cat->squeeze || !right_after_blank) {
                     print_char(c, cat, &line_counter, newline);
                 }
