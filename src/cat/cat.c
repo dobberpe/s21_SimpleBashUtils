@@ -97,7 +97,7 @@ void print_char(unsigned char c, cat_args* cat, int* line_counter, bool newline)
     }
     if (c != '\n') {
         if (cat->tab && c == '\t') printf("^I");
-        if (cat->nonprint) {
+        if (cat->nonprint && c != '\t') {
             if (c < 32) {
                 c += 64;
                 printf("^%c", c);
@@ -110,8 +110,7 @@ void print_char(unsigned char c, cat_args* cat, int* line_counter, bool newline)
                 printf("M-%c", c);
             } else if (c == 255) printf("M-^?");
             else printf("%c", c);
-        }
-        else printf("%c", c);
+        } else if (c != '\t') printf("%c", c);
     } else {
         if (cat->endl) printf("$");
         printf("\n");
