@@ -11,12 +11,16 @@ typedef struct {
     char* str_to_find;
     char** files;
     int f_size;
-    bool squeeze;
-    bool nonprint;
-    bool tab;
-    bool endl;
-    bool num_nonblank;
-    bool num;
+    bool regex;
+    bool ignore_case;
+    bool invert;
+    bool only_count;
+    bool only_fnames;
+    bool line_number;
+    bool without_fnames;
+    bool ignore_ferrors;
+    bool fregex;
+    bool part;
 } grep_args;
 
 grep_args* get_options(int argc, char** argv);
