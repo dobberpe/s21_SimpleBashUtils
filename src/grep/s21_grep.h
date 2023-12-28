@@ -6,11 +6,13 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <getopt.h>
+#include <regex.h>
 
 typedef struct {
-    char* str_to_find;
-    char** files;
-    int f_size;
+    char** patterns;
+    int p_size;
+    char** args;
+    int a_size;
     bool regex;
     bool ignore_case;
     bool invert;
@@ -26,7 +28,7 @@ typedef struct {
 grep_args* get_options(int argc, char** argv);
 grep_args* init_grep();
 void get_files(int argc, char** argv, grep_args* grep);
-void print_file(grep_args* grep);
-void print_char(unsigned char c, grep_args* grep, int* line_counter, bool newline);
+void print_file(int argc, char** argv, grep_args* grep);
+void print_line(char* line, int count, grep_args* grep);
 
 #endif
