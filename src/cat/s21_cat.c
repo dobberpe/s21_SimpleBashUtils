@@ -20,7 +20,7 @@ cat_args* get_options(int argc, char** argv) {
                                     {"squeeze-blank", 0, NULL, 's'},
                                     {NULL, 0, NULL, 0}};
     
-    while ((option = getopt_long(argc, argv, "AbeEnstT", long_opts, NULL)) != -1 && !fail) {
+    while ((option = getopt_long(argc, argv, "AbeEnstTv", long_opts, NULL)) != -1 && !fail) {
         if (option == 'A') {
             cat->nonprint = true;
             cat->endl = true;
@@ -34,7 +34,8 @@ cat_args* get_options(int argc, char** argv) {
         else if (option == 't' || option == 'T') {
             cat->tab = true;
             if (option == 't') cat->nonprint = true;
-        } else fail = true;
+        } else if (option == 'v') cat->nonprint = true;
+        else fail = true;
     }
 
     if (cat->num_nonblank && cat->num) cat->num = false;
@@ -63,11 +64,11 @@ void print_file(int argc, char** argv, cat_args* cat) {
     bool newline = true;
     bool right_after_blank = false;
     int line_counter = 0;
+    char prev = '\n';
 
     for (int i = 1; i < argc; ++i) {
         FILE* file = argv[i][0] != '-' ? fopen(argv[i], "r") : NULL;
         if (file) {
-            char prev = '\n';
             char c;
             while (fread(&c, sizeof(char), 1, file)) {
                 if (c != '\n' || !cat->squeeze || !right_after_blank) print_char(c, cat, &line_counter, newline);
