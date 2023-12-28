@@ -38,6 +38,17 @@ grep_args* get_options(int argc, char** argv) {
         else fail = true;
     }
 
+    if (grep->only_fnames) {
+        grep->without_fnames = false;
+        grep->only_count = false;
+        grep->line_number = false;
+        grep->part = false;
+    }
+    if (grep->only_count) {
+        grep->line_number = false;
+        grep->part = false;
+    }
+
     if (fail) {
         free(grep);
         grep = NULL;
