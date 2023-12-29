@@ -1,17 +1,27 @@
 #include "s21_grep.h"
 
 int main(int argc, char* argv[]) {
-    grep_args* grep = get_options(argc, argv);
+    char** patts = NULL;
+    int p_size = 0;
+    grep_args* grep = get_options(argc, argv, &patts, &p_size);
 
     if (grep) {
-        if (!grep->patterns && !get_default_pattern(argc, argv, grep)) print_file(grep);
+        bool fail = false;
+        argc -= optind;
+        argv += optind;
+        if (!patts) {
+            fail = get_default_pattern(argc, argv, &patts, &p_size);
+            --argc;
+            ++argv;
+        }
+        if (!fail && !convert_patterns_to_regex(patts, p_size, grep)) process_files(argc, argv, grep);
         free(grep);
     }
 
     return 0;
 }
 
-grep_args* get_options(int argc, char** argv) {
+grep_args* get_options(int argc, char** argv, char*** patts, int* p_size) {
     int option;
     bool fail = false;
     grep_args* grep = init_grep();
@@ -19,9 +29,8 @@ grep_args* get_options(int argc, char** argv) {
     while ((option = getopt(argc, argv, "e:ivclnhsf:o")) != -1 && !fail) {
         if (option == 'e') {
             grep->regex = true;
-            add_pattern(grep, optarg);
-            add_arg(&optarg, grep);
-        } else if (option == 'i') grep->ignore_case = true;
+            add_pattern(patts, p_size, optarg);
+        } else if (option == 'i') grep->ignore_case |= REG_ICASE;
         else if (option == 'v') grep->invert = true;
         else if (option == 'c') grep->only_count = true;
         else if (option == 'l') grep->only_fnames = true;
@@ -30,8 +39,7 @@ grep_args* get_options(int argc, char** argv) {
         else if (option == 's') grep->ignore_ferrors = true;
         else if (option == 'f') {
             grep->fregex = true;
-            if (get_pattern(grep, optarg)) fail = true;
-            add_arg(&optarg, grep);
+            if (get_pattern(patts, p_size, optarg)) fail = true;
         } else if (option == 'o') grep->part = true;
         else fail = true;
     }
@@ -58,10 +66,8 @@ grep_args* init_grep() {
     
     grep->patterns = NULL;
     grep->p_size = 0;
-    grep->args = NULL;
-    grep->a_size = 0;
     grep->regex = false;
-    grep->ignore_case = false;
+    grep->ignore_case = 0;
     grep->invert = false;
     grep->only_count = false;
     grep->only_fnames = false;
@@ -74,30 +80,13 @@ grep_args* init_grep() {
     return grep;
 }
 
-void add_arg(char** arg, grep_args* grep) {
-    ++(grep->a_size);
-    grep->args = grep->args ? (char**)realloc(grep->args, grep->a_size * sizeof(char*)) : (char**)malloc(grep->a_size * sizeof(char*));
-    grep->args[grep->a_size - 1] = *arg;
+void add_pattern(char*** patts, int* p_size, char* pat_str) {
+    ++(*p_size);
+    *patts = *patts ? (char**)realloc(*patts, (*p_size) * sizeof(char*)) : (char**)malloc((*p_size) * sizeof(char*));
+    (*patts)[(*p_size) - 1] = pat_str;
 }
 
-void add_pattern(grep_args* grep, char* pattern) {
-    if (!pattern_exists(grep, pattern)) {
-        ++(grep->p_size);
-        grep->patterns = grep->patterns ? (char**)realloc(grep->patterns, grep->p_size * sizeof(char*)) : (char**)malloc(grep->p_size * sizeof(char*));
-        grep->patterns[grep->p_size - 1] = pattern;
-    }
-}
-
-bool pattern_exists(grep_args* grep, char* pattern) {
-    bool found = false;
-    int i = -1;
-
-    while (++i < grep->p_size && !found) found = strcmp(grep->patterns[i], pattern) ? false : true;
-    
-    return found;
-}
-
-bool get_pattern(grep_args* grep, char* fname) {
+bool get_pattern(char*** patts, int* p_size, char* fname) {
     bool fail = false;
     char* line = NULL;
     int len = 0;
@@ -115,45 +104,55 @@ bool get_pattern(grep_args* grep, char* fname) {
                 line[0] = line ? line[0] : '\n';
                 if (line) line[len] = '\0';
                 else line[1] = '\0';
-                add_pattern(grep, line);
-                free(line);
+                add_pattern(patts, p_size, line);
                 line = NULL;
                 len = 0;
             }
         }
+        fclose(file);
     } else fail = true;
 
     return fail;
 }
 
-bool get_default_pattern(int argc, char** argv, grep_args* grep) {
-    int i = 0;
+bool get_default_pattern(int argc, char** argv, char*** patts, int* p_size) {
     bool fail = false;
 
-    while (++i < argc && argv[i][0] == '-');
-
-    if (i < argc) {
-        grep->patterns = (char**)malloc(sizeof(char*)) = argv[i];
-        grep->p_size = 1;
-        add_arg(&argv[i], grep);
+    if (argc > 0) {
+        ++(*p_size);
+        *patts = argv;
     } else fail = true;
 
     return fail;
 }
 
-void print_file(int argc, char** argv, grep_args* grep) {
-    char* line = NULL;
-    int len = 0;
-    int count = 0;
+bool convert_patterns_to_regex(char** patts, int p_size, grep_args* grep) {
+    bool fail = false;
+    regex_t pattern;
+    int i = -1;
 
-    for (int i = 1; i < argc; ++i) {
-        bool is_fname = argv[i][0] != '-' && !is_fe_arg(&argv[i][0], grep);
-        FILE* file = is_fname ? fopen(argv[i], "r") : NULL;
+    while (++i < p_size && !fail) {
+        if (regcomp(&pattern, patts[i], grep->ignore_case)) fail = true;
+        else {
+            ++(grep->p_size);
+            grep->patterns = grep->patterns ? (regex_t*)realloc(grep->patterns, grep->p_size * sizeof(regex_t)) : (regex_t*)malloc(grep->p_size * sizeof(regex_t));
+            grep->patterns[grep->p_size - 1] = pattern;
+        }
+    }
+
+    return fail;
+}
+
+void process_files(int argc, char** argv, grep_args* grep) {
+    for (int i = 0; i < argc; ++i) {
+        FILE* file = fopen(argv[i], "r");
+        int count = 0;
+        char* line = NULL;
+        int len = 0;
         if (file) {
             char c;
             int linenumber = 0;
             while (fread(&c, sizeof(char), 1, file)) {
-                ++linenumber;
                 if (c != '\n') {
                     ++len;
                     line = line ? (char*)realloc(line, len * sizeof(char)) :(char*)malloc(len * sizeof(char));
@@ -161,48 +160,68 @@ void print_file(int argc, char** argv, grep_args* grep) {
                 } else {
                     line = line ? (char*)realloc(line, (len + 1) * sizeof(char)) : (char*)malloc(sizeof(char));
                     line[len] = '\0';
-                    if (greped(line, grep)) process_flags(line, &count, grep);
+                    ++linenumber;
+                    grep_n_print(argc > 1 ? argv[i] : NULL, line, grep, &count, linenumber);
                     free(line);
+                    line = NULL;
                     len = 0;
                 }
             }
-            if ((grep->only_count || grep->only_fnames) && count) print_lc(argv[i], count, grep);
+            if (line) {
+                line = line ? (char*)realloc(line, (len + 1) * sizeof(char)) : (char*)malloc(sizeof(char));
+                line[len] = '\0';
+                ++linenumber;
+                grep_n_print(argc > 1 ? argv[i] : NULL, line, grep, &count, linenumber);
+                free(line);
+            }
+            if ((grep->only_count || grep->only_fnames) && count) print_fres(argc > 1 ? argv[i] : NULL, count, grep);
             fclose(file);
-        } else if (is_fname && !grep->ignore_ferrors) printf("s21_grep: %s: No such file or directory\n", argv[i]);
+        } else if (!grep->ignore_ferrors) printf("s21_grep: %s: No such file or directory\n", argv[i]);
     }
 }
 
-bool is_fe_arg(char* argv, grep_args* grep) {
-    bool is_arg = false;
-    int i = -1;
-
-    while (++i < grep->a_size && !is_arg) is_arg = argv == grep->args[i] ? true : false;
-
-    return is_arg;
-}
-
-void process_flags(char* line, int* count, grep_args* grep) {
-    if (grep->only_count || grep->only_fnames) ++(*count);
-    else print_line(line, count, grep);
-}
-
-bool greped(char* line, grep_args* grep) {
+void grep_n_print(char* f_name, char* line, grep_args* grep, int* count, int linenumber) {
     bool found = false;
+    regmatch_t match;
+    regmatch_t* matches = NULL;
+    int m_size = 0;
     int i = -1;
 
-    while (++i < grep->p_size && !found) {
-        int is_substr = grep->ignore_case ? strcasestr(line, grep->patterns[i]) : strstr(line, grep->patterns[i]);
-        if ((grep->invert && !is_substr) || (!grep->invert && is_substr)) found = true;
+    while (++i < grep->p_size && (grep->part || !found)) {
+        char* lptr = line;
+        bool res = regexec(&(grep->patterns[i]), lptr, 1, &match, 0);
+        do {
+            if ((grep->invert && res) || (!grep->invert && !res)) {
+                ++m_size;
+                matches = matches ? (regmatch_t*)realloc(matches, m_size * sizeof(regmatch_t)) : (regmatch_t*)malloc(m_size * sizeof(regmatch_t));
+                matches[m_size - 1] = match;
+                found = true;
+            }
+            if (!res && grep->part) {
+                lptr += match.rm_eo;
+                res = regexec(&(grep->patterns[i]), lptr, 1, &match, 0);
+            }
+        } while (!res && grep->part);
     }
 
-    return found;
+    *count = found ? *count + 1 : *count;
+    if (found && !grep->only_fnames && !grep->only_count) {
+        if (grep->part) for (int i = 0; i < m_size; ++i) print_line(f_name, line, grep, matches[i], linenumber);
+        else print_line(f_name, line, grep, matches[0], linenumber);
+    }
 }
 
-void print_line(char* line, int count, grep_args* grep) {
-    printf("%s\n", line);
+void print_line(char* f_name, char* line, grep_args* grep, regmatch_t match, int linenumber) {
+    if (f_name && !grep->without_fnames) printf ("%s:", f_name);
+    if (grep->line_number) printf("%d:", linenumber);
+    if (grep->part) {
+        for (int i = match.rm_so; i < match.rm_eo; ++i) printf("%c", line[i]);
+    } else printf("%s", line);
+    printf("\n");
 }
 
-void print_lc(char* fname, int count, grep_args* grep) {
-    if (!grep->without_fnames) printf("%s", fname);
-    if (!grep->only_fnames) printf(": %d", count);
+void print_fres(char* fname, int count, grep_args* grep) {
+    if (fname && !grep->without_fnames) printf(grep->only_fnames ? "%s" : "%s:", fname);
+    if (!grep->only_fnames) printf("%d", count);
+    printf("\n");
 }
