@@ -14,7 +14,10 @@ int main(int argc, char* argv[]) {
             --argc;
             ++argv;
         }
-        if (!fail && !convert_patterns_to_regex(patts, p_size, grep)) process_files(argc, argv, grep);
+        bool convertation_fail = !fail ? convert_patterns_to_regex(patts, p_size, grep) : false;
+        if (patts) free(patts);
+        if (!fail && !convertation_fail) process_files(argc, argv, grep);
+        if (grep->patterns) free(grep->patterns);
         free(grep);
     }
 
@@ -120,7 +123,8 @@ bool get_default_pattern(int argc, char** argv, char*** patts, int* p_size) {
 
     if (argc > 0) {
         ++(*p_size);
-        *patts = argv;
+        *patts = (char**)malloc((*p_size) * sizeof(char*));
+        (*patts)[(*p_size) - 1] = argv[0];
     } else fail = true;
 
     return fail;
