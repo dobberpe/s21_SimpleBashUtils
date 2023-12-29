@@ -4,7 +4,7 @@ int main(int argc, char* argv[]) {
     cat_args* cat = get_options(argc, argv);
 
     if (cat) {
-        print_file(argc, argv, cat);
+        print_file(argc - optind, argv + optind, cat);
         free(cat);
     }
 
@@ -44,6 +44,7 @@ cat_args* get_options(int argc, char** argv) {
         free(cat);
         cat = NULL;
     }
+
     return cat;
 }
 
@@ -66,7 +67,7 @@ void print_file(int argc, char** argv, cat_args* cat) {
     int line_counter = 0;
     char prev = '\n';
 
-    for (int i = 1; i < argc; ++i) {
+    for (int i = 0; i < argc; ++i) {
         FILE* file = argv[i][0] != '-' ? fopen(argv[i], "r") : NULL;
         if (file) {
             char c;
