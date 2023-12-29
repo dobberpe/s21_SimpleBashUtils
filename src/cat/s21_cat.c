@@ -68,7 +68,7 @@ void print_file(int argc, char** argv, cat_args* cat) {
     char prev = '\n';
 
     for (int i = 0; i < argc; ++i) {
-        FILE* file = argv[i][0] != '-' ? fopen(argv[i], "r") : NULL;
+        FILE* file = fopen(argv[i], "r");
         if (file) {
             char c;
             while (fread(&c, sizeof(char), 1, file)) {
