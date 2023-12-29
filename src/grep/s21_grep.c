@@ -174,7 +174,7 @@ void process_files(int argc, char** argv, grep_args* grep) {
                 grep_n_print(argc > 1 ? argv[i] : NULL, line, grep, &count, linenumber);
                 free(line);
             }
-            if ((grep->only_count || grep->only_fnames) && count) print_fres(argc > 1 ? argv[i] : NULL, count, grep);
+            if (grep->only_count || grep->only_fnames) print_fres(argc > 1 ? argv[i] : NULL, count, grep);
             fclose(file);
         } else if (!grep->ignore_ferrors) printf("s21_grep: %s: No such file or directory\n", argv[i]);
     }
@@ -183,8 +183,6 @@ void process_files(int argc, char** argv, grep_args* grep) {
 void grep_n_print(char* f_name, char* line, grep_args* grep, int* count, int linenumber) {
     bool found = false;
     regmatch_t match;
-    regmatch_t* matches = NULL;
-    int m_size = 0;
     int i = -1;
 
     while (++i < grep->p_size && (grep->part || !found)) {
@@ -192,9 +190,7 @@ void grep_n_print(char* f_name, char* line, grep_args* grep, int* count, int lin
         bool res = regexec(&(grep->patterns[i]), lptr, 1, &match, 0);
         do {
             if ((grep->invert && res) || (!grep->invert && !res)) {
-                ++m_size;
-                matches = matches ? (regmatch_t*)realloc(matches, m_size * sizeof(regmatch_t)) : (regmatch_t*)malloc(m_size * sizeof(regmatch_t));
-                matches[m_size - 1] = match;
+                if (!grep->only_count && !grep->only_fnames) print_line(f_name, lptr, grep, match, linenumber);
                 found = true;
             }
             if (!res && grep->part) {
@@ -205,10 +201,6 @@ void grep_n_print(char* f_name, char* line, grep_args* grep, int* count, int lin
     }
 
     *count = found ? *count + 1 : *count;
-    if (found && !grep->only_fnames && !grep->only_count) {
-        if (grep->part) for (int i = 0; i < m_size; ++i) print_line(f_name, line, grep, matches[i], linenumber);
-        else print_line(f_name, line, grep, matches[0], linenumber);
-    }
 }
 
 void print_line(char* f_name, char* line, grep_args* grep, regmatch_t match, int linenumber) {
@@ -221,7 +213,7 @@ void print_line(char* f_name, char* line, grep_args* grep, regmatch_t match, int
 }
 
 void print_fres(char* fname, int count, grep_args* grep) {
-    if (fname && !grep->without_fnames) printf(grep->only_fnames ? "%s" : "%s:", fname);
+    if (fname && !grep->without_fnames && (count || grep->only_count)) printf(grep->only_fnames ? "%s" : "%s:", fname);
     if (!grep->only_fnames) printf("%d", count);
     printf("\n");
 }
