@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -Werror -std=c11
 
-SRCS = s21_cat.c
+SRCS = $(wildcard *.c)
 EXE = s21_cat
 
 all: s21_cat
