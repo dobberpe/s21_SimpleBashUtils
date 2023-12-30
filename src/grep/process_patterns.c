@@ -54,11 +54,7 @@ bool get_default_pattern(int argc, char** argv, char*** patts, int* p_size) {
   bool fail = false;
 
   if (argc > 0) {
-    ++(*p_size);
-    *patts = (char**)malloc((*p_size) * sizeof(char*));
-    (*patts)[(*p_size) - 1] =
-        (char*)malloc((strlen(argv[0]) + 1) * sizeof(char));
-    (*patts)[(*p_size) - 1] = strcpy(argv[0], (*patts)[(*p_size) - 1]);
+    add_pattern(patts, p_size, argv[0]);
   } else
     fail = true;
 
