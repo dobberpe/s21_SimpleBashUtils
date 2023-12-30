@@ -1,7 +1,7 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -Werror
+CFLAGS = -Wall -Wextra -Werror -std=c11
 
-SRCS = s21_grep.c
+SRCS = $(wildcard *.c)
 EXE = s21_grep
 
 all: s21_grep
