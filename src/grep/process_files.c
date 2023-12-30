@@ -30,12 +30,12 @@ void process_files(int argc, char** argv, grep_args* grep) {
 }
 
 void finish_line(char** line, int* len, int* linenumber, int argc,
-                 grep_args* grep, char* f_name, int* count) {
+                 grep_args* grep, char* fname, int* count) {
   *line = *line ? (char*)realloc(*line, (*len + 1) * sizeof(char))
                 : (char*)malloc(sizeof(char));
   (*line)[*len] = '\0';
   ++(*linenumber);
-  grep_n_print((argc > 1 || grep->only_fnames) ? f_name : NULL, *line, grep,
+  grep_n_print((argc > 1 || grep->only_fnames) ? fname : NULL, *line, grep,
                count, *linenumber);
   free(*line);
   *line = NULL;
