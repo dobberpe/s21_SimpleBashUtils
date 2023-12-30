@@ -19,10 +19,8 @@ void print_file(int argc, char** argv, cat_args* cat) {
         prev = c;
       }
       fclose(file);
-    } else if (is_dir)
-      printf("s21_cat: %s: Is a directory\n", argv[i]);
-    else
-      printf("s21_cat: %s: No such file or directory\n", argv[i]);
+    } else
+      fprintf(stderr, "s21_cat: %s: %s\n", argv[i], is_dir ? "Is a directory" : "No such file or directory");
   }
 }
 
