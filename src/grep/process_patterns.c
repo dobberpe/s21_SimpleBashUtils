@@ -19,7 +19,7 @@ void add_pattern(char*** patts, int* p_size, char* pat_str) {
 bool get_pattern(char*** patts, int* p_size, char* fname) {
   bool fail = false;
   char* line = NULL;
-  bool is_dir = !is_a_directory(fname);
+  bool is_dir = file_exists(fname) ? !is_a_directory(fname) : false;
   FILE* file = is_dir ? NULL : fopen(fname, "r");
 
   if (file) {

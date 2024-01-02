@@ -37,7 +37,8 @@ bool get_default_pattern(int argc, char** argv, char*** patts, int* p_size);
 bool convert_patterns_to_regex(char** patts, int p_size, grep_args* grep);
 void get_files(int argc[], char** argv, grep_args* grep);
 void process_files(int argc, char** argv, grep_args* grep);
-int is_a_directory(const char* fname);
+bool is_a_directory(const char* fname);
+bool file_exists(char* fname);
 void finish_line(char** line, int* len, int* linenumber, int argc,
                  grep_args* grep, char* f_name, int* count);
 void grep_n_print(char* f_name, char* line, grep_args* grep, int* count,

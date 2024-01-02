@@ -2,7 +2,7 @@
 
 void process_files(int argc, char** argv, grep_args* grep) {
   for (int i = 0; i < argc; ++i) {
-    bool is_dir = !is_a_directory(argv[i]);
+    bool is_dir = file_exists(argv[i]) ? !is_a_directory(argv[i]) : false;
     FILE* file = is_dir ? NULL : fopen(argv[i], "r");
     int count = 0;
     char* line = NULL;
@@ -32,10 +32,15 @@ void process_files(int argc, char** argv, grep_args* grep) {
   }
 }
 
-int is_a_directory(const char* fname) {
+bool is_a_directory(const char* fname) {
   struct stat path;
   stat(fname, &path);
   return S_ISREG(path.st_mode);
+}
+
+bool file_exists(char* fname) {
+  struct stat buffer;
+  return (stat(fname, &buffer) == 0);
 }
 
 void finish_line(char** line, int* len, int* linenumber, int argc,
