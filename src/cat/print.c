@@ -7,7 +7,7 @@ void print_file(int argc, char** argv, cat_args* cat) {
   char prev = '\n';
 
   for (int i = 0; i < argc; ++i) {
-    bool is_dir = !is_a_directory(argv[i]);
+    bool is_dir = file_exists(argv[i]) ? !is_a_directory(argv[i]) : false;
     FILE* file = is_dir ? NULL : fopen(argv[i], "r");
     if (file) {
       char c;
@@ -20,14 +20,20 @@ void print_file(int argc, char** argv, cat_args* cat) {
       }
       fclose(file);
     } else
-      fprintf(stderr, "s21_cat: %s: %s\n", argv[i], is_dir ? "Is a directory" : "No such file or directory");
+      fprintf(stderr, "s21_cat: %s: %s\n", argv[i],
+              is_dir ? "Is a directory" : "No such file or directory");
   }
 }
 
-int is_a_directory(const char* fname) {
-    struct stat path;
-    stat(fname, &path);
-    return S_ISREG(path.st_mode);
+bool is_a_directory(const char* fname) {
+  struct stat path;
+  stat(fname, &path);
+  return S_ISREG(path.st_mode);
+}
+
+bool file_exists(char* fname) {
+  struct stat buffer;
+  return (stat(fname, &buffer) == 0);
 }
 
 void print_char(unsigned char c, cat_args* cat, int* line_counter,
