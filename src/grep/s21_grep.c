@@ -9,23 +9,24 @@ int main(int argc, char* argv[]) {
     bool fail = false;
     argc -= optind;
     argv += optind;
-    if (!patts) {
+    if (!grep->file && !patts) {
       fail = get_default_pattern(argc, argv, &patts, &p_size);
       --argc;
       ++argv;
     }
     bool convertation_fail =
         !fail ? convert_patterns_to_regex(patts, p_size, grep) : false;
-    if (patts) {
-      for (int i = 0; i < p_size; ++i) free(patts[i]);
-      free(patts);
-    }
     if (!fail && !convertation_fail) process_files(argc, argv, grep);
     if (grep->patterns) {
       for (int i = 0; i < grep->p_size; ++i) regfree(&(grep->patterns)[i]);
       free(grep->patterns);
     }
     free(grep);
+  }
+
+  if (patts) {
+    for (int i = 0; i < p_size; ++i) free(patts[i]);
+    free(patts);
   }
 
   return 0;

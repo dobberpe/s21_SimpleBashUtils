@@ -7,7 +7,6 @@ grep_args* get_options(int argc, char** argv, char*** patts, int* p_size) {
 
   while ((option = getopt(argc, argv, "e:ivclnhsf:o")) != -1 && !fail) {
     if (option == 'e') {
-      grep->regex = true;
       add_pattern(patts, p_size, optarg);
     } else if (option == 'i')
       grep->ignore_case |= REG_ICASE;
@@ -24,7 +23,7 @@ grep_args* get_options(int argc, char** argv, char*** patts, int* p_size) {
     else if (option == 's')
       grep->ignore_ferrors = true;
     else if (option == 'f') {
-      grep->fregex = true;
+      grep->file = true;
       if (get_pattern(patts, p_size, optarg)) fail = true;
     } else if (option == 'o')
       grep->part = true;
@@ -54,7 +53,6 @@ grep_args* init_grep() {
 
   grep->patterns = NULL;
   grep->p_size = 0;
-  grep->regex = false;
   grep->ignore_case = 0;
   grep->invert = false;
   grep->only_count = false;
@@ -62,8 +60,8 @@ grep_args* init_grep() {
   grep->line_number = false;
   grep->without_fnames = false;
   grep->ignore_ferrors = false;
-  grep->fregex = false;
   grep->part = false;
+  grep->file = false;
 
   return grep;
 }

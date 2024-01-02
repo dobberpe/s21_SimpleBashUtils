@@ -2,7 +2,8 @@
 
 void process_files(int argc, char** argv, grep_args* grep) {
   for (int i = 0; i < argc; ++i) {
-    FILE* file = fopen(argv[i], "r");
+    bool is_dir = !is_a_directory(argv[i]);
+    FILE* file = is_dir ? NULL : fopen(argv[i], "r");
     int count = 0;
     char* line = NULL;
     int len = 0;
@@ -20,18 +21,26 @@ void process_files(int argc, char** argv, grep_args* grep) {
       }
       if (line)
         finish_line(&line, &len, &linenumber, argc, grep, argv[i], &count);
-      if (grep->only_count || grep->only_fnames)
+      if ((grep->only_count || grep->only_fnames) &&
+          !(!grep->patterns && !grep->invert))
         print_fres((argc > 1 || grep->only_fnames) ? argv[i] : NULL, count,
                    grep);
       fclose(file);
     } else if (!grep->ignore_ferrors)
-      printf("s21_grep: %s: No such file or directory\n", argv[i]);
+      fprintf(stderr, "s21_grep: %s: %s\n", argv[i],
+              is_dir ? "Is a directory" : "No such file or directory");
   }
+}
+
+int is_a_directory(const char* fname) {
+  struct stat path;
+  stat(fname, &path);
+  return S_ISREG(path.st_mode);
 }
 
 void finish_line(char** line, int* len, int* linenumber, int argc,
                  grep_args* grep, char* fname, int* count) {
-  *line = *line ? (char*)realloc(*line, (*len + 1) * sizeof(char))
+  *line = *line ? (char*)realloc(*line, (*len + 2) * sizeof(char))
                 : (char*)malloc(sizeof(char));
   (*line)[*len] = '\0';
   ++(*linenumber);

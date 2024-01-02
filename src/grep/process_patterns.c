@@ -4,16 +4,23 @@ void add_pattern(char*** patts, int* p_size, char* pat_str) {
   ++(*p_size);
   *patts = *patts ? (char**)realloc(*patts, (*p_size) * sizeof(char*))
                   : (char**)malloc((*p_size) * sizeof(char*));
-  (*patts)[(*p_size) - 1] = (char*)malloc((strlen(pat_str) + 1) * sizeof(char));
+  int len = strlen(pat_str) + 1;
+  (*patts)[(*p_size) - 1] =
+      (char*)malloc((len == 1 ? len + 1 : len) * sizeof(char));
   int i = -1;
-  while (pat_str[++i]) (*patts)[(*p_size) - 1][i] = pat_str[i];
+  if (len == 1) {
+    (*patts)[(*p_size) - 1][0] = '$';
+    i = 1;
+  } else
+    while (pat_str[++i]) (*patts)[(*p_size) - 1][i] = pat_str[i];
   (*patts)[(*p_size) - 1][i] = '\0';
 }
 
 bool get_pattern(char*** patts, int* p_size, char* fname) {
   bool fail = false;
   char* line = NULL;
-  FILE* file = fopen(fname, "r");
+  bool is_dir = !is_a_directory(fname);
+  FILE* file = is_dir ? NULL : fopen(fname, "r");
 
   if (file) {
     char c;
@@ -29,21 +36,19 @@ bool get_pattern(char*** patts, int* p_size, char* fname) {
     }
     if (line) finline(&line, &len, patts, p_size);
     fclose(file);
-  } else
+  } else {
+    fprintf(stderr, "s21_grep: %s: %s\n", fname,
+            is_dir ? "Is a directory" : "No such file or directory");
     fail = true;
+  }
 
   return fail;
 }
 
 void finline(char** line, int* len, char*** patts, int* p_size) {
-  bool emptystring = *line ? false : true;
-  *line = !emptystring ? (char*)realloc(*line, (*len + 1) * sizeof(char))
-                       : (char*)malloc(2 * sizeof(char));
-  if (emptystring) {
-    (*line)[0] = '\n';
-    (*line)[1] = '\0';
-  } else
-    (*line)[*len] = '\0';
+  *line = *line ? (char*)realloc(*line, (*len + 1) * sizeof(char))
+                : (char*)malloc(sizeof(char));
+  (*line)[*len] = '\0';
   add_pattern(patts, p_size, *line);
   free(*line);
   *line = NULL;
@@ -67,9 +72,12 @@ bool convert_patterns_to_regex(char** patts, int p_size, grep_args* grep) {
   int i = -1;
 
   while (++i < p_size && !fail) {
-    if (regcomp(&pattern, patts[i], grep->ignore_case))
-      fail = true;
-    else {
+    int error;
+    if ((error = regcomp(&pattern, patts[i], grep->ignore_case))) {
+      char err[100];
+      regerror(error, &pattern, err, 100);
+      fprintf(stderr, "s21_grep: %s\n", err);
+    } else {
       ++(grep->p_size);
       grep->patterns = grep->patterns
                            ? (regex_t*)realloc(grep->patterns,
@@ -78,8 +86,6 @@ bool convert_patterns_to_regex(char** patts, int p_size, grep_args* grep) {
       grep->patterns[grep->p_size - 1] = pattern;
     }
   }
-
-  // if (fail) printf("fail\n");
 
   return fail;
 }
