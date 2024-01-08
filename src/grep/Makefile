@@ -11,6 +11,7 @@ s21_grep:
 
 test: s21_grep
 	@python3 ./testing/s21_grep_test.py
+	@rm -f s21_grep.res grep.res
 
 clean:
 	rm -rf $(EXE)
