@@ -11,6 +11,7 @@ s21_cat:
 
 test: s21_cat
 	@python3 ./testing/s21_cat_test.py
+	rm -f s21_cat.res cat.res
 
 clean:
 	rm -rf $(EXE)
